@@ -1,14 +1,13 @@
 package com.sample.portlet;
 
 import com.sample.portlet.fwk.Form;
-import com.sample.portlet.fwk.PortletController;
 import com.sample.portlet.fwk.annotation.ModelAttribute;
 import com.sample.portlet.fwk.annotation.OnAction;
 import com.sample.portlet.fwk.annotation.OnRender;
 import com.sample.portlet.fwk.annotation.OnSave;
 import com.sample.portlet.fwk.annotation.PreferenceAttribute;
 
-public class MyPortlet extends PortletController {
+public class MyPortlet {
 
     @ModelAttribute(true)
     private String username;

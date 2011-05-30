@@ -9,6 +9,8 @@ import com.sample.portlet.fwk.annotation.PreferenceAttribute;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
 import javax.portlet.GenericPortlet;
@@ -23,7 +25,7 @@ import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
 import javax.portlet.WindowState;
 
-public abstract class PortletController extends GenericPortlet {
+public class PortletController extends GenericPortlet {
 
     public static final String MODEL_KEY = "fwk____Model";
 
@@ -34,6 +36,8 @@ public abstract class PortletController extends GenericPortlet {
     public static ThreadLocal<PortletPreferences> currentPortletPrefs = new ThreadLocal<PortletPreferences>();
 
     public static ThreadLocal<Model> currentModel = new ThreadLocal<Model>();
+
+    public static ThreadLocal<Object> currentController = new ThreadLocal<Object>();
 
     private static final String VIEW_PREFIX = "/view/";
     private static final String VIEW = "/view.jsp";
@@ -46,13 +50,19 @@ public abstract class PortletController extends GenericPortlet {
     private PortletRequestDispatcher maximizedView;
     private PortletRequestDispatcher helpView;
     private PortletRequestDispatcher editView;
-    private Class<? extends PortletController> actualControllerType;
+    private Class<?> actualControllerType;
     private String controllerName;
 
     @Override
     public final void init(PortletConfig config) throws PortletException {
         super.init(config);
-        actualControllerType = this.getClass();
+        //actualControllerType = this.getClass();
+        String ctrl = config.getInitParameter("controller");
+        try {
+            actualControllerType = getClass().getClassLoader().loadClass(ctrl);
+        } catch (ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
+        }
         controllerName = actualControllerType.getSimpleName().toLowerCase();
         normalView = config.getPortletContext()
                 .getRequestDispatcher(VIEW_PREFIX + controllerName + VIEW);
@@ -117,6 +127,7 @@ public abstract class PortletController extends GenericPortlet {
     @Override
     public final void render(RenderRequest request, RenderResponse response)
             throws PortletException, IOException {
+        
         initRequest(request, response);
         render();
         storeAttributes();
@@ -125,6 +136,11 @@ public abstract class PortletController extends GenericPortlet {
     }
 
     private void initRequest(PortletRequest request, PortletResponse response) {
+        try {
+            currentController.set(actualControllerType.newInstance());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
         currentRequest.set(request);
         currentResponse.set(response);
         currentPortletSession.set(request.getPortletSession());
@@ -143,14 +159,14 @@ public abstract class PortletController extends GenericPortlet {
             for (Field field : actualControllerType.getDeclaredFields()) {
                 field.setAccessible(true);
                 if (field.isAnnotationPresent(PreferenceAttribute.class)) {
-                    field.set(this, currentPortletPrefs.get().getValue(field.getName(), null));
+                    field.set(currentController.get(), currentPortletPrefs.get().getValue(field.getName(), null));
                 }
                 if (field.isAnnotationPresent(ModelAttribute.class)) {
                     Object value = currentModel.get().get(field.getName());
                     if (field.getAnnotation(ModelAttribute.class).value()) {
                         value = currentPortletSession.get().getAttribute(field.getName());
                     }
-                    field.set(this, value);
+                    field.set(currentController.get(), value);
                 }
             }
         } catch (Exception e) {
@@ -167,6 +183,7 @@ public abstract class PortletController extends GenericPortlet {
         }
         currentPortletSession.remove();
         currentPortletPrefs.remove();
+        currentController.remove();
     }
 
     private void storeAttributes() {
@@ -174,13 +191,13 @@ public abstract class PortletController extends GenericPortlet {
             for (Field field : actualControllerType.getDeclaredFields()) {
                 field.setAccessible(true);
                 if (field.isAnnotationPresent(PreferenceAttribute.class)) {
-                    Object value = field.get(this);
+                    Object value = field.get(currentController.get());
                     if (value != null) {
                         currentPortletPrefs.get().setValue(field.getName(), value.toString());
                     }
                 }
                 if (field.isAnnotationPresent(ModelAttribute.class)) {
-                    Object value = field.get(this);
+                    Object value = field.get(currentController.get());
                     if (value != null) {
                         currentModel.get().put(field.getName(), value);
                         if (field.getAnnotation(ModelAttribute.class).value()) {
@@ -207,7 +224,7 @@ public abstract class PortletController extends GenericPortlet {
                         .equals(currentRequest.get().getPortletMode()
                             .toString().toLowerCase())) {
                     try {
-                        m.invoke(this);
+                        m.invoke(currentController.get());
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -226,12 +243,12 @@ public abstract class PortletController extends GenericPortlet {
                 if (m.isAnnotationPresent(OnAction.class)) {
                     try {
                         if (m.getAnnotation(OnAction.class).value().equals("*")) {
-                            m.invoke(this);
+                            m.invoke(currentController.get());
                         } else {
                             if (currentRequest.get()
                                 .getParameter("javax.portlet.action")
                                     .equals(m.getAnnotation(OnAction.class).value())) {
-                               m.invoke(this);
+                               m.invoke(currentController.get());
                             }
                         }
                     } catch (Exception e) {
@@ -247,7 +264,7 @@ public abstract class PortletController extends GenericPortlet {
             m.setAccessible(true);
             if (m.isAnnotationPresent(OnSave.class)) {
                 try {
-                    m.invoke(this);
+                    m.invoke(currentController.get());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
