@@ -29,6 +29,11 @@ import javax.portlet.WindowState;
 public class PortletController extends GenericPortlet {
 
     public static final String MODEL_KEY = "fwk____Model";
+    public static final String SAVE_PREFS_KEY = "savePreferences";
+    public static final String HANDLED = "handled";
+    public static final String WILDCARD = "*";
+    public static final String CONTROLLER_KEY = "controller";
+    public static final String ACTION = "javax.portlet.action";
 
     public static ThreadLocal<PortletRequest> currentRequest = new ThreadLocal<PortletRequest>();
     public static ThreadLocal<PortletResponse> currentResponse = new ThreadLocal<PortletResponse>();
@@ -57,7 +62,7 @@ public class PortletController extends GenericPortlet {
     @Override
     public final void init(PortletConfig config) throws PortletException {
         super.init(config);
-        String ctrl = config.getInitParameter("controller");
+        String ctrl = config.getInitParameter(CONTROLLER_KEY);
         try {
             actualControllerType = getClass().getClassLoader().loadClass(ctrl);
         } catch (ClassNotFoundException ex) {
@@ -145,8 +150,8 @@ public class PortletController extends GenericPortlet {
     }
 
     private void initRequest(PortletRequest request, PortletResponse response) {
-        if (request.getAttribute("handled") == null) {
-            request.setAttribute("handled", "true");
+        if (request.getAttribute(HANDLED) == null) {
+            request.setAttribute(HANDLED, "true");
             if (currentController.get() == null) {
                 try {
                     currentController.set(actualControllerType.newInstance());
@@ -220,7 +225,7 @@ public class PortletController extends GenericPortlet {
 
     private void endRequest(boolean render) {
         if (render) {
-            currentRequest.get().removeAttribute("handled");
+            currentRequest.get().removeAttribute(HANDLED);
             currentRequest.remove();
             currentResponse.remove();
             currentPortletSession.get().removeAttribute(MODEL_KEY);
@@ -250,19 +255,19 @@ public class PortletController extends GenericPortlet {
     }
 
     private void action() {
-        if (currentRequest.get().getParameter("javax.portlet.action")
-                .equals("savePreferences")) {
+        if (currentRequest.get().getParameter(ACTION)
+                .equals(SAVE_PREFS_KEY)) {
             save();
         } else {
             for (Method m : actualControllerType.getDeclaredMethods()) {
                 m.setAccessible(true);
                 if (m.isAnnotationPresent(OnAction.class)) {
                     try {
-                        if (m.getAnnotation(OnAction.class).value().equals("*")) {
+                        if (m.getAnnotation(OnAction.class).value().equals(WILDCARD)) {
                             m.invoke(currentController.get(), getParams(m));
                         } else {
                             if (currentRequest.get()
-                                .getParameter("javax.portlet.action")
+                                .getParameter(ACTION)
                                     .equals(m.getAnnotation(OnAction.class).value())) {
                                m.invoke(currentController.get(), getParams(m));
                             }
@@ -293,7 +298,7 @@ public class PortletController extends GenericPortlet {
             m.setAccessible(true);
             if (m.isAnnotationPresent(OnEvent.class)) {
                 try {
-                    if (m.getAnnotation(OnEvent.class).value().equals("*")) {
+                    if (m.getAnnotation(OnEvent.class).value().equals(WILDCARD)) {
                         m.invoke(currentController.get(), getParams(m));
                     } else {
                         EventRequest req = (EventRequest) currentRequest.get();
@@ -326,6 +331,24 @@ public class PortletController extends GenericPortlet {
         if(type.equals(PortletResponse.class)) {
             return (T) currentResponse.get();
         }
+        if(type.equals(ActionRequest.class)) {
+            return (T) currentRequest.get();
+        }
+        if(type.equals(ActionResponse.class)) {
+            return (T) currentResponse.get();
+        }
+        if(type.equals(EventRequest.class)) {
+            return (T) currentRequest.get();
+        }
+        if(type.equals(EventResponse.class)) {
+            return (T) currentResponse.get();
+        }
+        if(type.equals(RenderRequest.class)) {
+            return (T) currentRequest.get();
+        }
+        if(type.equals(RenderResponse.class)) {
+            return (T) currentResponse.get();
+        }
         if(type.equals(PortletSession.class)) {
             return (T) currentPortletSession.get();
         }
@@ -335,9 +358,12 @@ public class PortletController extends GenericPortlet {
         if(type.equals(Model.class)) {
             return (T) currentModel.get();
         }
-//        if(type.equals(PortletRequest.class)) {
-//            return (T) currentRequest.get();
-//        }
+        if(type.equals(RequestParams.class)) {
+            return (T) new RequestParams();
+        }
+        if(type.equals(PortletHelper.class)) {
+            return (T) new PortletHelper(this);
+        }
         throw new IllegalStateException("Can't find instance for type " + type);
     }
 }
