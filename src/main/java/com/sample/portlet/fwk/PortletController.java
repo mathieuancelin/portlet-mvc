@@ -8,6 +8,7 @@ import com.sample.portlet.fwk.annotation.OnRender.Phase;
 import com.sample.portlet.fwk.annotation.OnSave;
 import com.sample.portlet.fwk.annotation.PreferenceAttribute;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import javax.portlet.ActionRequest;
@@ -150,17 +151,13 @@ public class PortletController extends GenericPortlet {
     }
 
     private void initRequest(PortletRequest request, PortletResponse response) {
+        currentRequest.set(request);
+        currentResponse.set(response);
         if (request.getAttribute(HANDLED) == null) {
             request.setAttribute(HANDLED, "true");
             if (currentController.get() == null) {
-                try {
-                    currentController.set(actualControllerType.newInstance());
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
+                currentController.set(getInstance(actualControllerType));
             }
-            currentRequest.set(request);
-            currentResponse.set(response);
             currentPortletSession.set(request.getPortletSession());
             currentPortletPrefs.set(request.getPreferences());
             Object model = currentPortletSession.get().getAttribute(MODEL_KEY);
@@ -318,13 +315,13 @@ public class PortletController extends GenericPortlet {
         Object[] params = new Object[m.getParameterTypes().length];
         int i = 0;
         for (Class<?> type : m.getParameterTypes()) {
-            params[i] = getParamForType(type);
+            params[i] = getParamForType(type, m.getParameterAnnotations()[i]);
             i++;
         }
         return params;
     }
 
-    private <T> T getParamForType(Class<T> type) {
+    private <T> T getParamForType(Class<T> type, Annotation... qualifiers) {
         if(type.equals(PortletRequest.class)) {
             return (T) currentRequest.get();
         }
@@ -364,6 +361,24 @@ public class PortletController extends GenericPortlet {
         if(type.equals(PortletHelper.class)) {
             return (T) new PortletHelper(this);
         }
+        Object value = null;
+        try {
+            value = getInstance(type, qualifiers);
+            if (value != null) {
+                return (T) value;
+            }
+        } catch (Exception e) {}
         throw new IllegalStateException("Can't find instance for type " + type);
+    }
+
+    /**
+     * Override this method for integration with third party DI frameworks.
+     */
+    public <T> T getInstance(Class<T> clazz, Annotation... qualifiers) {
+        try {
+            return (T) clazz.newInstance();
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

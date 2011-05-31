@@ -39,7 +39,7 @@ public class MyPortlet {
         }
     }
 
-    @OnAction("saveUsername")
+    @OnAction("submitUsername")
     public void submitUsername() {
         UsernameForm form = UsernameForm.validateFromRequest();
         this.username = form.username;

@@ -7,7 +7,7 @@
 
 <h1>Hello World !!!!!</h1>
 
-<portlet:actionURL name="saveUsername" var="saveUrl" />
+<portlet:actionURL name="submitUsername" var="saveUrl" />
 <portlet:renderURL portletMode="VIEW" var="cancelUrl" />
 
 <c:out value="${username}" />
