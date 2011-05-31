@@ -157,4 +157,8 @@ public class PortletHelper {
                 WindowState.NORMAL);
         return url;
     }
+
+    public static void render(String file) {
+        PortletController.currentPortletSession.get().setAttribute(PortletController.CUSTOM_VIEW, file);
+    }
 }

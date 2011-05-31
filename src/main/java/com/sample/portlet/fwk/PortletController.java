@@ -26,6 +26,7 @@ import javax.portlet.PortletSession;
 import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
 import javax.portlet.WindowState;
+import javax.servlet.RequestDispatcher;
 
 public class PortletController extends GenericPortlet {
 
@@ -35,6 +36,7 @@ public class PortletController extends GenericPortlet {
     public static final String WILDCARD = "*";
     public static final String CONTROLLER_KEY = "controller";
     public static final String ACTION = "javax.portlet.action";
+    public static final String CUSTOM_VIEW = "fwk___view";
 
     public static ThreadLocal<PortletRequest> currentRequest = new ThreadLocal<PortletRequest>();
     public static ThreadLocal<PortletResponse> currentResponse = new ThreadLocal<PortletResponse>();
@@ -99,26 +101,46 @@ public class PortletController extends GenericPortlet {
     @Override
     public final void doView(RenderRequest request, RenderResponse response)
             throws PortletException, IOException {
-        if (WindowState.MINIMIZED.equals(request.getWindowState())) {
-            return;
-        }
-        if (WindowState.NORMAL.equals(request.getWindowState())) {
-            normalView.include(request, response);
+        if (request.getPortletSession().getAttribute(CUSTOM_VIEW) != null) {
+            renderCustom(request, response);
         } else {
-            maximizedView.include(request, response);
+            if (WindowState.MINIMIZED.equals(request.getWindowState())) {
+                return;
+            }
+            if (WindowState.NORMAL.equals(request.getWindowState())) {
+                normalView.include(request, response);
+            } else {
+                maximizedView.include(request, response);
+            }
         }
     }
 
     @Override
     public final void doHelp(RenderRequest request, RenderResponse response)
             throws PortletException, IOException {
-        helpView.include(request, response);
+        if (request.getPortletSession().getAttribute(CUSTOM_VIEW) != null) {
+            renderCustom(request, response);
+        } else {
+            helpView.include(request, response);
+        }
     }
 
     @Override
     protected void doEdit(RenderRequest request, RenderResponse response)
             throws PortletException, IOException {
-        editView.include(request, response);
+        if (request.getPortletSession().getAttribute(CUSTOM_VIEW) != null) {
+            renderCustom(request, response);
+        } else {
+            editView.include(request, response);
+        }
+    }
+
+    private void renderCustom(RenderRequest request, RenderResponse response)
+            throws PortletException, IOException {
+        String file = (String) request.getPortletSession().getAttribute(CUSTOM_VIEW);
+        PortletRequestDispatcher custom =
+                getPortletConfig().getPortletContext().getRequestDispatcher(file);
+        custom.include(request, response);
     }
 
     @Override
@@ -222,6 +244,7 @@ public class PortletController extends GenericPortlet {
 
     private void endRequest(boolean render) {
         if (render) {
+            currentPortletSession.get().removeAttribute(CUSTOM_VIEW);
             currentRequest.get().removeAttribute(HANDLED);
             currentRequest.remove();
             currentResponse.remove();
