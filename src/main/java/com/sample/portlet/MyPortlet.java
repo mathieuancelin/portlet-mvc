@@ -1,6 +1,7 @@
 package com.sample.portlet;
 
 import com.sample.portlet.fwk.Form;
+import com.sample.portlet.fwk.Model;
 import com.sample.portlet.fwk.PortletHelper;
 import com.sample.portlet.fwk.annotation.ModelAttribute;
 import com.sample.portlet.fwk.annotation.OnAction;
@@ -48,8 +49,10 @@ public class MyPortlet {
     @OnSave
     public void savePreferences(PortletHelper helper) {
         PrefsForm form = PrefsForm.validateFromRequest();
-        upper = form.upper;
-        helper.setMode(PortletMode.VIEW);
+        if (form.isValid()) {
+            upper = form.upper;
+            helper.setMode(PortletMode.VIEW);
+        }
     }
 
     public static class UsernameForm extends Form {
@@ -76,12 +79,16 @@ public class MyPortlet {
         public static PrefsForm validateFromRequest() {
             PrefsForm form = new PrefsForm();
             form.fillFromRequest();
-            form.validate();
+            form.validateForm();
             return form;
         }
 
         @Override
         public boolean validate() {
+            if (!upper.equals("on") && !upper.equals("off")) {
+                getModel().put(Model.ERROR, "Value should be on or off");
+                return false;
+            }
             return true;
         }
     }

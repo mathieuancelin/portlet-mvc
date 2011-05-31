@@ -9,6 +9,9 @@
 
 <portlet:actionURL name="savePreferences" var="saveUrl" />
 <portlet:renderURL portletMode="VIEW" var="cancelUrl" />
+<c:if test="${!empty error}">
+    <span class="portlet-msg-error">${error}</span>
+</c:if>
 <form action="${saveUrl}" method="post">
     <table>
         <tr>
