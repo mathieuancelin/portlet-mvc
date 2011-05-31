@@ -22,13 +22,16 @@ public class MyPortlet {
     public String upper;
 
     @OnRender
-    public void render() {
+    public void render(Model model) {
         if (username == null) {
             username = "Unknown";
         }
         if (upper != null && upper.equals("on")) {
             username = username.toUpperCase();
         }
+        model.put("max", PortletHelper.getMaximizeRenderURL(PortletMode.EDIT));
+        model.put("min", PortletHelper.getMinimizeRenderURL());
+        model.put("normal", PortletHelper.getNormalRenderURL());
     }
 
     @OnRender(OnRender.Phase.EDIT)
@@ -47,11 +50,11 @@ public class MyPortlet {
     }
 
     @OnSave
-    public void savePreferences(PortletHelper helper) {
+    public void savePreferences() {
         PrefsForm form = PrefsForm.validateFromRequest();
         if (form.isValid()) {
             upper = form.upper;
-            helper.setMode(PortletMode.VIEW);
+            PortletHelper.setMode(PortletMode.VIEW);
         }
     }
 

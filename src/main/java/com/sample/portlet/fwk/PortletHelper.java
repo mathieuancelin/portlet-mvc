@@ -139,4 +139,22 @@ public class PortletHelper {
                 WindowState.NORMAL);
         return url;
     }
+
+    public static String getMaximizeRenderURL(PortletMode mode) {
+        final String url = getRenderURL(mode,
+                WindowState.MAXIMIZED);
+        return url;
+    }
+
+    public static String getMinimizeRenderURL(PortletMode mode) {
+        final String url = getRenderURL(mode,
+                WindowState.MINIMIZED);
+        return url;
+    }
+
+    public static String getNormalRenderURL(PortletMode mode) {
+        final String url = getRenderURL(mode,
+                WindowState.NORMAL);
+        return url;
+    }
 }

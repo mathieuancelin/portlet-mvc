@@ -10,7 +10,11 @@
 <portlet:actionURL name="submitUsername" var="saveUrl" />
 <portlet:renderURL portletMode="VIEW" var="cancelUrl" />
 
-<c:out value="${username}" />
+<c:out value="${username}" /><br/>
+
+<a href="${min}">min</a><br/>
+<a href="${normal}">normal</a><br/>
+<a href="${max}">max</a><br/>
 
 <form action="${saveUrl}" method="post">
     <table>
