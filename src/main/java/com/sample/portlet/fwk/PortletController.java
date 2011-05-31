@@ -2,6 +2,7 @@ package com.sample.portlet.fwk;
 
 import com.sample.portlet.fwk.annotation.ModelAttribute;
 import com.sample.portlet.fwk.annotation.OnAction;
+import com.sample.portlet.fwk.annotation.OnEvent;
 import com.sample.portlet.fwk.annotation.OnRender;
 import com.sample.portlet.fwk.annotation.OnRender.Phase;
 import com.sample.portlet.fwk.annotation.OnSave;
@@ -11,6 +12,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
+import javax.portlet.EventRequest;
+import javax.portlet.EventResponse;
 import javax.portlet.GenericPortlet;
 import javax.portlet.PortletConfig;
 import javax.portlet.PortletException;
@@ -122,9 +125,18 @@ public class PortletController extends GenericPortlet {
     }
 
     @Override
+    public void processEvent(EventRequest request, EventResponse response)
+            throws PortletException, IOException {
+        initRequest(request, response);
+        event();
+        storeAttributes();
+        endRequest(false);
+    }
+
+
+    @Override
     public final void render(RenderRequest request, RenderResponse response)
             throws PortletException, IOException {
-        
         initRequest(request, response);
         render();
         storeAttributes();
@@ -133,24 +145,27 @@ public class PortletController extends GenericPortlet {
     }
 
     private void initRequest(PortletRequest request, PortletResponse response) {
-        if (currentController.get() == null) {
-            try {
-                currentController.set(actualControllerType.newInstance());
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
+        if (request.getAttribute("handled") == null) {
+            request.setAttribute("handled", "true");
+            if (currentController.get() == null) {
+                try {
+                    currentController.set(actualControllerType.newInstance());
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
             }
+            currentRequest.set(request);
+            currentResponse.set(response);
+            currentPortletSession.set(request.getPortletSession());
+            currentPortletPrefs.set(request.getPreferences());
+            Object model = currentPortletSession.get().getAttribute(MODEL_KEY);
+            if (model == null) {
+                model = new Model();
+                currentPortletSession.get().setAttribute(MODEL_KEY, model);
+            }
+            currentModel.set((Model) model);
+            setControllersFields();
         }
-        currentRequest.set(request);
-        currentResponse.set(response);
-        currentPortletSession.set(request.getPortletSession());
-        currentPortletPrefs.set(request.getPreferences());
-        Object model = currentPortletSession.get().getAttribute(MODEL_KEY);
-        if (model == null) {
-            model = new Model();
-            currentPortletSession.get().setAttribute(MODEL_KEY, model);
-        }
-        currentModel.set((Model) model);
-        setControllersFields();
     }
 
     private void setControllersFields() {
@@ -172,18 +187,6 @@ public class PortletController extends GenericPortlet {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    private void endRequest(boolean render) {
-        currentRequest.remove();
-        currentResponse.remove();
-        if (render) {
-            currentPortletSession.get().removeAttribute(MODEL_KEY);
-            currentModel.remove();
-            currentController.remove();
-        }
-        currentPortletSession.remove();
-        currentPortletPrefs.remove();
     }
 
     private void storeAttributes() {
@@ -215,6 +218,19 @@ public class PortletController extends GenericPortlet {
         }
     }
 
+    private void endRequest(boolean render) {
+        if (render) {
+            currentRequest.get().removeAttribute("handled");
+            currentRequest.remove();
+            currentResponse.remove();
+            currentPortletSession.get().removeAttribute(MODEL_KEY);
+            currentModel.remove();
+            currentController.remove();
+            currentPortletSession.remove();
+            currentPortletPrefs.remove();
+        }
+    }
+
     private void render() {
         for (Method m : actualControllerType.getDeclaredMethods()) {
             m.setAccessible(true);
@@ -224,7 +240,7 @@ public class PortletController extends GenericPortlet {
                         .equals(currentRequest.get().getPortletMode()
                             .toString().toLowerCase())) {
                     try {
-                        m.invoke(currentController.get());
+                        m.invoke(currentController.get(), getParams(m));
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -243,12 +259,12 @@ public class PortletController extends GenericPortlet {
                 if (m.isAnnotationPresent(OnAction.class)) {
                     try {
                         if (m.getAnnotation(OnAction.class).value().equals("*")) {
-                            m.invoke(currentController.get());
+                            m.invoke(currentController.get(), getParams(m));
                         } else {
                             if (currentRequest.get()
                                 .getParameter("javax.portlet.action")
                                     .equals(m.getAnnotation(OnAction.class).value())) {
-                               m.invoke(currentController.get());
+                               m.invoke(currentController.get(), getParams(m));
                             }
                         }
                     } catch (Exception e) {
@@ -264,11 +280,64 @@ public class PortletController extends GenericPortlet {
             m.setAccessible(true);
             if (m.isAnnotationPresent(OnSave.class)) {
                 try {
-                    m.invoke(currentController.get());
+                    m.invoke(currentController.get(), getParams(m));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }
         }
+    }
+
+    private void event() {
+        for (Method m : actualControllerType.getDeclaredMethods()) {
+            m.setAccessible(true);
+            if (m.isAnnotationPresent(OnEvent.class)) {
+                try {
+                    if (m.getAnnotation(OnEvent.class).value().equals("*")) {
+                        m.invoke(currentController.get(), getParams(m));
+                    } else {
+                        EventRequest req = (EventRequest) currentRequest.get();
+                        if (req.getEvent().getName()
+                                .equals(m.getAnnotation(OnEvent.class).value())) {
+                           m.invoke(currentController.get(), getParams(m));
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private Object[] getParams(Method m) {
+        Object[] params = new Object[m.getParameterTypes().length];
+        int i = 0;
+        for (Class<?> type : m.getParameterTypes()) {
+            params[i] = getParamForType(type);
+            i++;
+        }
+        return params;
+    }
+
+    private <T> T getParamForType(Class<T> type) {
+        if(type.equals(PortletRequest.class)) {
+            return (T) currentRequest.get();
+        }
+        if(type.equals(PortletResponse.class)) {
+            return (T) currentResponse.get();
+        }
+        if(type.equals(PortletSession.class)) {
+            return (T) currentPortletSession.get();
+        }
+        if(type.equals(PortletPreferences.class)) {
+            return (T) currentPortletPrefs.get();
+        }
+        if(type.equals(Model.class)) {
+            return (T) currentModel.get();
+        }
+//        if(type.equals(PortletRequest.class)) {
+//            return (T) currentRequest.get();
+//        }
+        throw new IllegalStateException("Can't find instance for type " + type);
     }
 }
