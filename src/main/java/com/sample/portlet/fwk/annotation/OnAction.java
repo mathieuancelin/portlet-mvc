@@ -14,5 +14,8 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface OnAction {
 
+    /**
+     * @return action name
+     */
     String value() default "*";
 }

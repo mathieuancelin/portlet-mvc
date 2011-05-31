@@ -14,5 +14,8 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface OnEvent {
 
+    /**
+     * @return event name
+     */
     String value() default "*";
 }

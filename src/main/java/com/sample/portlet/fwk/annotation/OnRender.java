@@ -18,5 +18,8 @@ public @interface OnRender {
         VIEW, EDIT, HELP, ALL
     }
 
+    /**
+     * @return render phase
+     */
     Phase value() default Phase.ALL;
 }
