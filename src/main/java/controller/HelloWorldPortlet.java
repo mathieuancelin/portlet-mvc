@@ -13,44 +13,71 @@ import javax.portlet.PortletPreferences;
 
 public class HelloWorldPortlet {
 
+    /**
+     * Called on render view phase.
+     */
     @OnRender(OnRender.Phase.VIEW)
     public void render(Model model, PortletPreferences prefs) {
+        // get username from model
         Maybe<String> username = model.forKey("username", String.class);
+        // get username transformation based on preferences
         UsernameAction action = new UsernameAction(
                 prefs.getValue("upper", "off").equals("on"));
+
         if (!username.isDefined()) {
+            // if no username in model
             model.attr("username", action.apply("Unknown"));
         } else {
+            // if username in model (after submit action)
             model.attr("username", action.apply(username.get()));
         }
+        // render a new username form
         new UsernameForm().render();
     }
 
+    /**
+     * Called on render edit phase.
+     */
     @OnRender(OnRender.Phase.EDIT)
     public void renderEdit(PortletPreferences prefs) {
-        PrefsForm.fromPreferences().render();
+        // render a form filled with prefs
+        PrefsForm.loadFromPreferences().render();
     }
 
+    /**
+     * Called on action named submitUsername.
+     */
     @OnAction("submitUsername")
     public void submitUsername() {
-        UsernameForm form = UsernameForm.validateFromRequest();
+        // get form inputs
+        UsernameForm form = UsernameForm.loadAndValidateFromRequest();
+        // render the username
         Render.attr("username", form.username);
     }
 
+    /**
+     * Called on action named savePreferences.
+     */
     @OnSave
     public void savePreferences(PortletPreferences prefs) {
-        PrefsForm form = PrefsForm.validateFromRequest();
+        // get prefs form inputs
+        PrefsForm form = PrefsForm.loadAndValidateFromRequest();
         if (form.isValid()) {
+            // if it's valid, save it
             form.saveInPreferences();
+            // and go back to view
             PortletHelper.setMode(PortletMode.VIEW);
         }
     }
 
+    /**
+     * Representation of the username submission form.
+     */
     public static class UsernameForm extends Form {
 
         private String username;
 
-        public static UsernameForm validateFromRequest() {
+        public static UsernameForm loadAndValidateFromRequest() {
             UsernameForm form = new UsernameForm();
             form.fillFromRequest();
             form.validate();
@@ -63,17 +90,21 @@ public class HelloWorldPortlet {
         }
     }
 
+    /**
+     * Representation of the preference form.
+     * This form validates the input values.
+     */
     public static class PrefsForm extends Form {
 
         private String upper;
 
-        public static PrefsForm fromPreferences() {
+        public static PrefsForm loadFromPreferences() {
             PrefsForm form = new PrefsForm();
             form.fillFromPreferences();
             return form;
         }
 
-        public static PrefsForm validateFromRequest() {
+        public static PrefsForm loadAndValidateFromRequest() {
             PrefsForm form = new PrefsForm();
             form.fillFromRequest();
             form.validateForm();
@@ -90,6 +121,10 @@ public class HelloWorldPortlet {
         }
     }
 
+    /**
+     * Transformation class for the username.
+     * Returns an uppercased username based on preferences.
+     */
     public static class UsernameAction {
         
         private final boolean uppercase;
