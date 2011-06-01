@@ -46,12 +46,16 @@ public class PortletHelper {
         return portlet.getPortletContext();
     }
 
-    public static void setMode(PortletMode mode) {
+    public static void setMode(PortletResponse resp, PortletMode mode) {
         try {
-            ((ActionResponse) getResponse()).setPortletMode(mode);
+            ((ActionResponse) resp).setPortletMode(mode);
         } catch (PortletModeException ex) {
             ex.printStackTrace();
         }
+    }
+
+    public static void setMode(PortletMode mode) {
+        setMode(getResponse(), mode);
     }
 
     public static <E> E getService(final Class<E> e) {
@@ -63,7 +67,11 @@ public class PortletHelper {
     }
 
     public static String getRemoteUser() {
-        return getRequest().getRemoteUser();
+        return getRemoteUser(getRequest());
+    }
+
+    public static String getRemoteUser(PortletRequest req) {
+        return req.getRemoteUser();
     }
 
     public static <E> E getBean(final String bean, final Class<E> modelClass) {
@@ -71,29 +79,41 @@ public class PortletHelper {
     }
 
     public static boolean isMaximized() {
-        return getRequest().getWindowState().equals(WindowState.MAXIMIZED);
+        return isMaximized(getRequest());
     }
 
-    public static void setWindowState(final WindowState state) {
+    public static boolean isMaximized(PortletRequest req) {
+        return req.getWindowState().equals(WindowState.MAXIMIZED);
+    }
+
+    public static void setWindowState(WindowState state) {
+        setWindowState(getRequest(), state);
+    }
+
+    public static void setWindowState(PortletRequest req, WindowState state) {
         try {
-            ((ActionResponse) getRequest()).setWindowState(state);
+            ((ActionResponse) req).setWindowState(state);
         } catch (WindowStateException ex) {
             ex.printStackTrace();
         }
     }
 
-    public static String getCurrentPath(final GenericPortlet portlet) {
+    public static String getCurrentPath(GenericPortlet portlet) {
         String webRoot = getPortletContext(portlet).getRealPath("/");
         return webRoot;
     }
 
-    public static String getNamespace(final GenericPortlet portlet) {
+    public static String getNamespace(GenericPortlet portlet) {
         return getPortletConfig(portlet).getDefaultNamespace();
     }
 
-    public static void setTitle(final String title) {
+    public static void setTitle(String title) {
+        setTitle(getResponse(), title);
+    }
+
+    public static void setTitle(PortletResponse resp, String title) {
         try {
-            ((RenderResponse) getResponse()).setTitle(title);
+            ((RenderResponse) resp).setTitle(title);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -105,9 +125,13 @@ public class PortletHelper {
 
     public static String getRenderURL(
             final PortletMode mode, final WindowState state) {
+        return getRenderURL(getResponse(), mode, state);
+    }
+
+    public static String getRenderURL(PortletResponse resp,
+            PortletMode mode, WindowState state) {
         String url = null;
-        final PortletResponse portletResponse = getResponse();
-        final PortletURL renderURL = ((RenderResponse) portletResponse).createRenderURL();
+        final PortletURL renderURL = ((RenderResponse) resp).createRenderURL();
         try {
             if (mode != null) {
                 renderURL.setPortletMode(mode);
@@ -125,37 +149,67 @@ public class PortletHelper {
     }
 
     public static String getMaximizeRenderURL() {
-        final String url = getRenderURL(null,
+        return getRenderURL(getResponse(), null,
+                WindowState.MAXIMIZED);
+    }
+
+    public static String getMinimizeRenderURL() {
+        return getRenderURL(getResponse(), null,
+                WindowState.MINIMIZED);
+    }
+
+    public static String getNormalRenderURL() {
+        return getRenderURL(getResponse(), null,
+                WindowState.NORMAL);
+    }
+
+    public static String getMaximizeRenderURL(PortletMode mode) {
+        return getRenderURL(getResponse(), mode,
+                WindowState.MAXIMIZED);
+    }
+
+    public static String getMinimizeRenderURL(PortletMode mode) {
+        return getRenderURL(getResponse(), mode,
+                WindowState.MINIMIZED);
+    }
+
+    public static String getNormalRenderURL(PortletMode mode) {
+        return getRenderURL(getResponse(), mode,
+                WindowState.NORMAL);
+    }
+
+    public static String getMaximizeRenderURL(PortletResponse resp) {
+        final String url = getRenderURL(resp, null,
                 WindowState.MAXIMIZED);
         return url;
     }
 
-    public static String getMinimizeRenderURL() {
-        final String url = getRenderURL(null,
+    public static String getMinimizeRenderURL(PortletResponse resp) {
+        final String url = getRenderURL(resp, null,
                 WindowState.MINIMIZED);
         return url;
     }
 
-    public static String getNormalRenderURL() {
-        final String url = getRenderURL(null,
+    public static String getNormalRenderURL(PortletResponse resp) {
+        final String url = getRenderURL(resp, null,
                 WindowState.NORMAL);
         return url;
     }
 
-    public static String getMaximizeRenderURL(PortletMode mode) {
-        final String url = getRenderURL(mode,
+    public static String getMaximizeRenderURL(PortletResponse resp, PortletMode mode) {
+        final String url = getRenderURL(resp, mode,
                 WindowState.MAXIMIZED);
         return url;
     }
 
-    public static String getMinimizeRenderURL(PortletMode mode) {
-        final String url = getRenderURL(mode,
+    public static String getMinimizeRenderURL(PortletResponse resp, PortletMode mode) {
+        final String url = getRenderURL(resp, mode,
                 WindowState.MINIMIZED);
         return url;
     }
 
-    public static String getNormalRenderURL(PortletMode mode) {
-        final String url = getRenderURL(mode,
+    public static String getNormalRenderURL(PortletResponse resp, PortletMode mode) {
+        final String url = getRenderURL(resp, mode,
                 WindowState.NORMAL);
         return url;
     }
