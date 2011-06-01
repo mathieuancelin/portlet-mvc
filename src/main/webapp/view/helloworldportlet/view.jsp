@@ -5,5 +5,11 @@
 
 <portlet:defineObjects />
 
-<h1>Edit preferences</h1>
-<span class="portlet-msg-error">custom edit</span>
+<h1>Hello ${username} !!!!!</h1>
+
+<portlet:actionURL name="submitUsername" var="saveUrl" />
+<portlet:renderURL portletMode="VIEW" var="cancelUrl" />
+
+<form action="${saveUrl}" method="post">
+    ${form}
+</form>

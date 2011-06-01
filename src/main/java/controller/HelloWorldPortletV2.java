@@ -1,8 +1,8 @@
-package com.sample.portlet;
+package controller;
 
-import com.sample.portlet.fwk.Form;
-import com.sample.portlet.fwk.Model;
 import com.sample.portlet.fwk.PortletHelper;
+import com.sample.portlet.fwk.PortletHelper.Form;
+import com.sample.portlet.fwk.PortletHelper.Model;
 import com.sample.portlet.fwk.annotation.ModelAttribute;
 import com.sample.portlet.fwk.annotation.OnAction;
 import com.sample.portlet.fwk.annotation.OnRender;
@@ -10,7 +10,7 @@ import com.sample.portlet.fwk.annotation.OnSave;
 import com.sample.portlet.fwk.annotation.PreferenceAttribute;
 import javax.portlet.PortletMode;
 
-public class MyPortlet {
+public class HelloWorldPortletV2 {
 
     @ModelAttribute(true)
     private String username;

@@ -6,10 +6,6 @@
     <portlet>
         <portlet-name>HelloWorldPortlet</portlet-name>
         <portlet-class>com.sample.portlet.fwk.PortletController</portlet-class>
-        <init-param>
-            <name>controller</name>
-            <value>com.sample.portlet.MyPortlet</value>
-        </init-param>
         <supports>
             <mime-type>text/html</mime-type>
             <portlet-mode>view</portlet-mode>

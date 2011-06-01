@@ -1,5 +1,6 @@
 package com.sample.portlet.fwk.annotation;
 
+import com.sample.portlet.fwk.PortletController;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
@@ -17,5 +18,5 @@ public @interface OnAction {
     /**
      * @return action name
      */
-    String value() default "*";
+    String value() default PortletController.WILDCARD;
 }

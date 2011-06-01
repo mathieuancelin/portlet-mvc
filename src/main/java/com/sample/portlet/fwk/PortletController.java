@@ -1,5 +1,9 @@
 package com.sample.portlet.fwk;
 
+import com.sample.portlet.fwk.PortletHelper.Form;
+import com.sample.portlet.fwk.PortletHelper.Model;
+import com.sample.portlet.fwk.PortletHelper.ParameterizedModel;
+import com.sample.portlet.fwk.PortletHelper.RequestParams;
 import com.sample.portlet.fwk.annotation.ModelAttribute;
 import com.sample.portlet.fwk.annotation.OnAction;
 import com.sample.portlet.fwk.annotation.OnEvent;
@@ -26,7 +30,6 @@ import javax.portlet.PortletSession;
 import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
 import javax.portlet.WindowState;
-import javax.servlet.RequestDispatcher;
 
 public class PortletController extends GenericPortlet {
 
@@ -66,12 +69,15 @@ public class PortletController extends GenericPortlet {
     public final void init(PortletConfig config) throws PortletException {
         super.init(config);
         String ctrl = config.getInitParameter(CONTROLLER_KEY);
-        try {
-            actualControllerType = getClass().getClassLoader().loadClass(ctrl);
-        } catch (ClassNotFoundException ex) {
-            throw new RuntimeException(ex);
+        if (ctrl == null) {
+            ctrl = "controller." + config.getPortletName();
         }
-        controllerName = actualControllerType.getSimpleName().toLowerCase();
+        try {
+            actualControllerType = loadClass(ctrl);
+        } catch (Exception e) {
+            actualControllerType = EmptyController.class;
+        }
+        controllerName = config.getPortletName().toLowerCase();
         normalView = config.getPortletContext()
                 .getRequestDispatcher(VIEW_PREFIX + controllerName + VIEW);
         if (normalView == null) {
@@ -87,6 +93,14 @@ public class PortletController extends GenericPortlet {
                 .getRequestDispatcher(VIEW_PREFIX + controllerName + HELP_VIEW);
         editView = config.getPortletContext()
                 .getRequestDispatcher(VIEW_PREFIX + controllerName + EDIT_VIEW);
+    }
+
+    private Class<?> loadClass(String name) {
+        try {
+            return getClass().getClassLoader().loadClass(name);
+        } catch (ClassNotFoundException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     @Override
@@ -126,7 +140,7 @@ public class PortletController extends GenericPortlet {
     }
 
     @Override
-    protected void doEdit(RenderRequest request, RenderResponse response)
+    public final void doEdit(RenderRequest request, RenderResponse response)
             throws PortletException, IOException {
         if (request.getPortletSession().getAttribute(CUSTOM_VIEW) != null) {
             renderCustom(request, response);
@@ -144,7 +158,7 @@ public class PortletController extends GenericPortlet {
     }
 
     @Override
-    public void processAction(ActionRequest request, ActionResponse response) 
+    public final void processAction(ActionRequest request, ActionResponse response)
             throws PortletException, IOException {
         initRequest(request, response);
         action();
@@ -153,7 +167,7 @@ public class PortletController extends GenericPortlet {
     }
 
     @Override
-    public void processEvent(EventRequest request, EventResponse response)
+    public final void processEvent(EventRequest request, EventResponse response)
             throws PortletException, IOException {
         initRequest(request, response);
         event();
@@ -381,8 +395,8 @@ public class PortletController extends GenericPortlet {
         if(type.equals(RequestParams.class)) {
             return (T) new RequestParams();
         }
-        if(type.equals(PortletHelper.class)) {
-            return (T) new PortletHelper(this);
+        if(type.equals(Render.class)) {
+            return (T) new Render();
         }
         Object value = null;
         try {
@@ -404,4 +418,60 @@ public class PortletController extends GenericPortlet {
             throw new RuntimeException(e);
         }
     }
+
+    public static class Render {
+
+        private Render() {}
+
+        public static void form(Form form) {
+            form.render();
+        }
+
+        public static ParameterizedModel err(String mess) {
+            currentModel.get().put(Model.ERROR, mess);
+            return new ModelRender();
+        }
+
+        public static ParameterizedModel attr(String name, Object value) {
+            currentModel.get().put(name, value);
+            return new ModelRender();
+        }
+
+        public static ParameterizedModel view(String file) {
+            PortletController.currentPortletSession.get()
+                .setAttribute(PortletController.CUSTOM_VIEW, file);
+            return new ModelRender();
+        }
+    }
+
+    public static class ModelRender implements ParameterizedModel {
+
+        private ModelRender() {}
+
+        @Override
+        public ParameterizedModel attr(String name, Object value) {
+            currentModel.get().put(name, value);
+            return this;
+        }
+
+        public ParameterizedModel view(String file) {
+            PortletController.currentPortletSession.get()
+                .setAttribute(PortletController.CUSTOM_VIEW, file);
+            return this;
+        }
+
+        @Override
+        public ParameterizedModel rem(String name) {
+            currentModel.get().remove(name);
+            return this;
+        }
+
+        @Override
+        public ParameterizedModel err(String mess) {
+            currentModel.get().put(Model.ERROR, mess);
+            return this;
+        }
+    }
+
+    private static class EmptyController {}
 }
