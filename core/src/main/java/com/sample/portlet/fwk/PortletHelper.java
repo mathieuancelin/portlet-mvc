@@ -421,11 +421,11 @@ public class PortletHelper {
             return PortletController.currentPortletSession.get();
         }
 
-        public Option<Object> get(String key) {
+        public Option<Object> forKey(String key) {
             return new Maybe<Object>(getSession().getAttribute(key));
         }
 
-        public <T> Option<T> get(String key, Class<T> type) {
+        public <T> Option<T> forKey(String key, Class<T> type) {
             return new Maybe<T>((T) getSession().getAttribute(key));
         }
 
@@ -460,11 +460,11 @@ public class PortletHelper {
             return PortletController.currentPortletPrefs.get();
         }
 
-        public Option<String> get(String key) {
+        public Option<String> forKey(String key) {
             return new Maybe<String>(getPrefs().getValue(key, null));
         }
 
-        public Option<String> get(String key, String orElse) {
+        public Option<String> forKey(String key, String orElse) {
             return new Maybe<String>(getPrefs().getValue(key, orElse));
         }
 

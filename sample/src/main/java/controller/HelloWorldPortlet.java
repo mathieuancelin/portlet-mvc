@@ -22,7 +22,7 @@ public class HelloWorldPortlet {
         Option<String> username = model.forKey("username", String.class);
         // get username transformation based on preferences
         UsernameAction action = new UsernameAction(
-                prefs.get("upper").getOrElse("off").equals("on"));
+                prefs.forKey("upper").getOrElse("off").equals("on"));
 
         if (!username.isDefined()) {
             // if no username in model
