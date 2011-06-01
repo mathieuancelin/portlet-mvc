@@ -1,6 +1,6 @@
 package controller;
 
-import com.sample.portlet.fwk.F.Maybe;
+import com.sample.portlet.fwk.F.Option;
 import com.sample.portlet.fwk.PortletController.Render;
 import com.sample.portlet.fwk.PortletHelper;
 import com.sample.portlet.fwk.PortletHelper.Form;
@@ -19,7 +19,7 @@ public class HelloWorldPortlet {
     @OnRender(OnRender.Phase.VIEW)
     public void render(Model model, Preferences prefs) {
         // get username from model
-        Maybe<String> username = model.forKey("username", String.class);
+        Option<String> username = model.forKey("username", String.class);
         // get username transformation based on preferences
         UsernameAction action = new UsernameAction(
                 prefs.get("upper").getOrElse("off").equals("on"));

@@ -355,11 +355,11 @@ public class PortletHelper {
 
         public static final String ERROR = "error";
 
-        public Maybe<Object> forKey(String key) {
+        public Option<Object> forKey(String key) {
             return new Maybe<Object>(super.get(key));
         }
 
-        public <T> Maybe<T> forKey(String key, Class<T> type) {
+        public <T> Option<T> forKey(String key, Class<T> type) {
             return new Maybe<T>((T) super.get(key));
         }
 
@@ -421,11 +421,11 @@ public class PortletHelper {
             return PortletController.currentPortletSession.get();
         }
 
-        public Maybe<Object> get(String key) {
+        public Option<Object> get(String key) {
             return new Maybe<Object>(getSession().getAttribute(key));
         }
 
-        public <T> Maybe<T> get(String key, Class<T> type) {
+        public <T> Option<T> get(String key, Class<T> type) {
             return new Maybe<T>((T) getSession().getAttribute(key));
         }
 
@@ -460,11 +460,11 @@ public class PortletHelper {
             return PortletController.currentPortletPrefs.get();
         }
 
-        public Maybe<String> get(String key) {
+        public Option<String> get(String key) {
             return new Maybe<String>(getPrefs().getValue(key, null));
         }
 
-        public Maybe<String> get(String key, String orElse) {
+        public Option<String> get(String key, String orElse) {
             return new Maybe<String>(getPrefs().getValue(key, orElse));
         }
 
