@@ -17,9 +17,12 @@ import javax.portlet.PortletConfig;
 import javax.portlet.PortletContext;
 import javax.portlet.PortletMode;
 import javax.portlet.PortletModeException;
+import javax.portlet.PortletPreferences;
 import javax.portlet.PortletRequest;
 import javax.portlet.PortletResponse;
+import javax.portlet.PortletSession;
 import javax.portlet.PortletURL;
+import javax.portlet.ReadOnlyException;
 import javax.portlet.RenderResponse;
 import javax.portlet.WindowState;
 import javax.portlet.WindowStateException;
@@ -410,5 +413,102 @@ public class PortletHelper {
         ParameterizedModel err(String mess);
         ParameterizedModel attr(String name, Object value);
         ParameterizedModel rem(String name);
+    }
+
+    public static class Session {
+
+        private PortletSession getSession() {
+            return PortletController.currentPortletSession.get();
+        }
+
+        public Maybe<Object> get(String key) {
+            return new Maybe<Object>(getSession().getAttribute(key));
+        }
+
+        public <T> Maybe<T> get(String key, Class<T> type) {
+            return new Maybe<T>((T) getSession().getAttribute(key));
+        }
+
+        public String id() {
+            return getSession().getId();
+        }
+
+        public void invalidate() {
+            getSession().invalidate();
+        }
+
+        public Session remove(String key) {
+            getSession().removeAttribute(key);
+            return this;
+        }
+
+        public Session add(String key, Object value) {
+            getSession().setAttribute(key, value);
+            return this;
+        }
+
+        public PortletSession unwrap() {
+            return getSession();
+        }
+    }
+
+    public static class Preferences {
+
+        private final List<Exception> exceptions = new ArrayList<Exception>();
+
+        private PortletPreferences getPrefs() {
+            return PortletController.currentPortletPrefs.get();
+        }
+
+        public Maybe<String> get(String key) {
+            return new Maybe<String>(getPrefs().getValue(key, null));
+        }
+
+        public Maybe<String> get(String key, String orElse) {
+            return new Maybe<String>(getPrefs().getValue(key, orElse));
+        }
+
+        public Preferences add(String key, String value) {
+            try {
+                getPrefs().setValue(key, value);
+            } catch (ReadOnlyException ex) {
+                exceptions.add(ex);
+            }
+            return this;
+        }
+
+        public Preferences reset(String string) {
+            try {
+                getPrefs().reset(string);
+            } catch (ReadOnlyException ex) {
+                exceptions.add(ex);
+            }
+            return this;
+        }
+
+        public void store() {
+            try {
+                getPrefs().store();
+            } catch (Exception ex) {
+                exceptions.add(ex);
+            }
+        }
+
+        public PortletPreferences unwrap() {
+            return getPrefs();
+        }
+
+        public Preferences resetExceptions() {
+            exceptions.clear();
+            return this;
+        }
+
+        public boolean hasErrors() {
+            return (exceptions.size() > 0);
+        }
+
+        public List<Exception> exceptions() {
+            return exceptions;
+        }
     }
 }

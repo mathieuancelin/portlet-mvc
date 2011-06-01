@@ -3,7 +3,9 @@ package com.sample.portlet.fwk;
 import com.sample.portlet.fwk.PortletHelper.Form;
 import com.sample.portlet.fwk.PortletHelper.Model;
 import com.sample.portlet.fwk.PortletHelper.ParameterizedModel;
+import com.sample.portlet.fwk.PortletHelper.Preferences;
 import com.sample.portlet.fwk.PortletHelper.RequestParams;
+import com.sample.portlet.fwk.PortletHelper.Session;
 import com.sample.portlet.fwk.annotation.ModelAttribute;
 import com.sample.portlet.fwk.annotation.OnAction;
 import com.sample.portlet.fwk.annotation.OnEvent;
@@ -397,6 +399,12 @@ public class PortletController extends GenericPortlet {
         }
         if(type.equals(Render.class)) {
             return (T) new Render();
+        }
+        if(type.equals(Session.class)) {
+            return (T) new Session();
+        }
+        if(type.equals(Preferences.class)) {
+            return (T) new Preferences();
         }
         Object value = null;
         try {

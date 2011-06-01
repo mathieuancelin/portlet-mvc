@@ -5,11 +5,11 @@ import com.sample.portlet.fwk.PortletController.Render;
 import com.sample.portlet.fwk.PortletHelper;
 import com.sample.portlet.fwk.PortletHelper.Form;
 import com.sample.portlet.fwk.PortletHelper.Model;
+import com.sample.portlet.fwk.PortletHelper.Preferences;
 import com.sample.portlet.fwk.annotation.OnAction;
 import com.sample.portlet.fwk.annotation.OnRender;
 import com.sample.portlet.fwk.annotation.OnSave;
 import javax.portlet.PortletMode;
-import javax.portlet.PortletPreferences;
 
 public class HelloWorldPortlet {
 
@@ -17,12 +17,12 @@ public class HelloWorldPortlet {
      * Called on render view phase.
      */
     @OnRender(OnRender.Phase.VIEW)
-    public void render(Model model, PortletPreferences prefs) {
+    public void render(Model model, Preferences prefs) {
         // get username from model
         Maybe<String> username = model.forKey("username", String.class);
         // get username transformation based on preferences
         UsernameAction action = new UsernameAction(
-                prefs.getValue("upper", "off").equals("on"));
+                prefs.get("upper").getOrElse("off").equals("on"));
 
         if (!username.isDefined()) {
             // if no username in model
@@ -39,7 +39,7 @@ public class HelloWorldPortlet {
      * Called on render edit phase.
      */
     @OnRender(OnRender.Phase.EDIT)
-    public void renderEdit(PortletPreferences prefs) {
+    public void renderEdit() {
         // render a form filled with prefs
         PrefsForm.loadFromPreferences().render();
     }
@@ -59,7 +59,7 @@ public class HelloWorldPortlet {
      * Called on action named savePreferences.
      */
     @OnSave
-    public void savePreferences(PortletPreferences prefs) {
+    public void savePreferences() {
         // get prefs form inputs
         PrefsForm form = PrefsForm.loadAndValidateFromRequest();
         if (form.isValid()) {
