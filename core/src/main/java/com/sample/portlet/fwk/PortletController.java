@@ -66,6 +66,7 @@ public class PortletController extends GenericPortlet {
     private PortletRequestDispatcher editView;
     private Class<?> actualControllerType;
     private String controllerName;
+	private String elName;
 
     @Override
     public final void init(PortletConfig config) throws PortletException {
@@ -80,6 +81,7 @@ public class PortletController extends GenericPortlet {
             actualControllerType = EmptyController.class;
         }
         controllerName = config.getPortletName().toLowerCase();
+		elName = config.getPortletName().substring(0, 1).toLowerCase() + config.getPortletName().substring(1);
         normalView = config.getPortletContext()
                 .getRequestDispatcher(VIEW_PREFIX + controllerName + VIEW);
         if (normalView == null) {
@@ -204,6 +206,7 @@ public class PortletController extends GenericPortlet {
                 currentPortletSession.get().setAttribute(MODEL_KEY, model);
             }
             currentModel.set((Model) model);
+			currentModel.get().put(elName, currentController.get());
             setControllersFields();
         }
     }
