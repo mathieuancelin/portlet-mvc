@@ -1,5 +1,6 @@
 package com.sample.portlet.fwk;
 
+import com.sample.portlet.fwk.PortletHelper.Model;
 import java.lang.annotation.Annotation;
 import java.util.Collections;
 import java.util.Map;
@@ -39,7 +40,7 @@ public class SimplePortletController extends AbstractPortletController {
     }
 
     @Override
-    public Map<String, Object> getManagedBeans() {
+    public Map<String, Object> getManagedBeans(Model model) {
         return Collections.emptyMap();
     }
 }

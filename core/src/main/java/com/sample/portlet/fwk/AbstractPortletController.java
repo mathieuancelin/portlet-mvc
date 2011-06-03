@@ -214,7 +214,7 @@ public abstract class AbstractPortletController extends GenericPortlet {
             }
             currentModel.set((Model) model);
             currentModel.get().put(elName, currentController.get());
-            currentModel.get().putAll(getManagedBeans());
+            currentModel.get().putAll(getManagedBeans(currentModel.get()));
             setControllersFields();
             startRequest(request, response);
         }
@@ -442,7 +442,7 @@ public abstract class AbstractPortletController extends GenericPortlet {
      * Override this method for integration with third party DI frameworks.
      * The DI managed returned will be accessible from EL.
      */
-    public abstract Map<String, Object> getManagedBeans();
+    public abstract Map<String, Object> getManagedBeans(Model model);
 
     public static class Render {
 
