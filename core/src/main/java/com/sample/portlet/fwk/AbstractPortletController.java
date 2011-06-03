@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.Map;
 import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
 import javax.portlet.EventRequest;
@@ -33,7 +34,7 @@ import javax.portlet.RenderRequest;
 import javax.portlet.RenderResponse;
 import javax.portlet.WindowState;
 
-public class PortletController extends GenericPortlet {
+public abstract class AbstractPortletController extends GenericPortlet {
 
     public static final String MODEL_KEY = "fwk____Model";
     public static final String SAVE_PREFS_KEY = "savePreferences";
@@ -53,20 +54,20 @@ public class PortletController extends GenericPortlet {
 
     public static ThreadLocal<Object> currentController = new ThreadLocal<Object>();
 
-    private static final String VIEW_PREFIX = "/view/";
-    private static final String VIEW = "/view.jsp";
-    private static final String NORMAL_VIEW = "/view-normal.jsp";
-    private static final String MAXIMIZED_VIEW = "/view-maximized.jsp";
-    private static final String HELP_VIEW = "/help.jsp";
-    private static final String EDIT_VIEW = "/edit.jsp";
+    protected static final String VIEW_PREFIX = "/view/";
+    protected static final String VIEW = "/view.jsp";
+    protected static final String NORMAL_VIEW = "/view-normal.jsp";
+    protected static final String MAXIMIZED_VIEW = "/view-maximized.jsp";
+    protected static final String HELP_VIEW = "/help.jsp";
+    protected static final String EDIT_VIEW = "/edit.jsp";
     
-    private PortletRequestDispatcher normalView;
-    private PortletRequestDispatcher maximizedView;
-    private PortletRequestDispatcher helpView;
-    private PortletRequestDispatcher editView;
-    private Class<?> actualControllerType;
-    private String controllerName;
-	private String elName;
+    protected PortletRequestDispatcher normalView;
+    protected PortletRequestDispatcher maximizedView;
+    protected PortletRequestDispatcher helpView;
+    protected PortletRequestDispatcher editView;
+    protected Class<?> actualControllerType;
+    protected String controllerName;
+    protected String elName;
 
     @Override
     public final void init(PortletConfig config) throws PortletException {
@@ -97,7 +98,10 @@ public class PortletController extends GenericPortlet {
                 .getRequestDispatcher(VIEW_PREFIX + controllerName + HELP_VIEW);
         editView = config.getPortletContext()
                 .getRequestDispatcher(VIEW_PREFIX + controllerName + EDIT_VIEW);
+        start(config);
     }
+
+    public abstract void start(PortletConfig config);
 
     private Class<?> loadClass(String name) {
         try {
@@ -113,8 +117,11 @@ public class PortletController extends GenericPortlet {
         maximizedView = null;
         helpView = null;
         editView = null;
+        stop();
         super.destroy();
     }
+
+    public abstract void stop();
 
     @Override
     public final void doView(RenderRequest request, RenderResponse response)
@@ -206,10 +213,14 @@ public class PortletController extends GenericPortlet {
                 currentPortletSession.get().setAttribute(MODEL_KEY, model);
             }
             currentModel.set((Model) model);
-			currentModel.get().put(elName, currentController.get());
+            currentModel.get().put(elName, currentController.get());
+            currentModel.get().putAll(getManagedBeans());
             setControllersFields();
+            startRequest(request, response);
         }
     }
+
+    public abstract void startRequest(PortletRequest request, PortletResponse response);
 
     private void setControllersFields() {
         try {
@@ -263,6 +274,7 @@ public class PortletController extends GenericPortlet {
 
     private void endRequest(boolean render) {
         if (render) {
+            stopRequest(currentRequest.get(), currentResponse.get());
             currentPortletSession.get().removeAttribute(CUSTOM_VIEW);
             currentRequest.get().removeAttribute(HANDLED);
             currentRequest.remove();
@@ -274,6 +286,8 @@ public class PortletController extends GenericPortlet {
             currentPortletPrefs.remove();
         }
     }
+
+    public abstract void stopRequest(PortletRequest request, PortletResponse response);
 
     private void render() {
         for (Method m : actualControllerType.getDeclaredMethods()) {
@@ -363,7 +377,7 @@ public class PortletController extends GenericPortlet {
         return params;
     }
 
-    private <T> T getParamForType(Class<T> type, Annotation... qualifiers) {
+    protected <T> T getParamForType(Class<T> type, Annotation... qualifiers) {
         if(type.equals(PortletRequest.class)) {
             return (T) currentRequest.get();
         }
@@ -422,13 +436,13 @@ public class PortletController extends GenericPortlet {
     /**
      * Override this method for integration with third party DI frameworks.
      */
-    public <T> T getInstance(Class<T> clazz, Annotation... qualifiers) {
-        try {
-            return (T) clazz.newInstance();
-        } catch(Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+    public abstract <T> T getInstance(Class<T> clazz, Annotation... qualifiers);
+
+    /**
+     * Override this method for integration with third party DI frameworks.
+     * The DI managed returned will be accessible from EL.
+     */
+    public abstract Map<String, Object> getManagedBeans();
 
     public static class Render {
 
@@ -449,8 +463,8 @@ public class PortletController extends GenericPortlet {
         }
 
         public static ParameterizedModel view(String file) {
-            PortletController.currentPortletSession.get()
-                .setAttribute(PortletController.CUSTOM_VIEW, file);
+            AbstractPortletController.currentPortletSession.get()
+                .setAttribute(AbstractPortletController.CUSTOM_VIEW, file);
             return new ModelRender();
         }
     }
@@ -466,8 +480,8 @@ public class PortletController extends GenericPortlet {
         }
 
         public ParameterizedModel view(String file) {
-            PortletController.currentPortletSession.get()
-                .setAttribute(PortletController.CUSTOM_VIEW, file);
+            AbstractPortletController.currentPortletSession.get()
+                .setAttribute(AbstractPortletController.CUSTOM_VIEW, file);
             return this;
         }
 
@@ -484,5 +498,5 @@ public class PortletController extends GenericPortlet {
         }
     }
 
-    private static class EmptyController {}
+    protected static class EmptyController {}
 }

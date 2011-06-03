@@ -1,6 +1,6 @@
 package controller;
 
-import com.sample.portlet.fwk.PortletController.Render;
+import com.sample.portlet.fwk.AbstractPortletController.Render;
 import com.sample.portlet.fwk.annotation.OnRender;
 
 public class SimplePortlet {

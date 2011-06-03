@@ -2,7 +2,7 @@ package com.sample.portlet.fwk;
 
 import com.sample.portlet.fwk.F.Maybe;
 import com.sample.portlet.fwk.F.Option;
-import com.sample.portlet.fwk.PortletController.Render;
+import com.sample.portlet.fwk.AbstractPortletController.Render;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,11 +30,11 @@ import javax.portlet.WindowStateException;
 public class PortletHelper {
 
     public static PortletRequest getRequest() {
-        return PortletController.currentRequest.get();
+        return AbstractPortletController.currentRequest.get();
     }
 
     public static PortletResponse getResponse() {
-        return PortletController.currentResponse.get();
+        return AbstractPortletController.currentResponse.get();
     }
 
     public static String getPortletName(final GenericPortlet portlet) {
@@ -78,7 +78,7 @@ public class PortletHelper {
     }
 
     public static <E> E getBean(final String bean, final Class<E> modelClass) {
-        return (E) PortletController.currentModel.get().get(bean);
+        return (E) AbstractPortletController.currentModel.get().get(bean);
     }
 
     public static boolean isMaximized() {
@@ -228,7 +228,7 @@ public class PortletHelper {
         }
 
         public static Model getModel() {
-            return PortletController.currentModel.get();
+            return AbstractPortletController.currentModel.get();
         }
 
         public Form fillFromRequest() {
@@ -236,7 +236,7 @@ public class PortletHelper {
                 for (Field field : this.getClass().getDeclaredFields()) {
                     if (!field.getName().equals("valid")) {
                         field.setAccessible(true);
-                        Object value = PortletController.currentRequest.get().getParameter(field.getName());
+                        Object value = AbstractPortletController.currentRequest.get().getParameter(field.getName());
                         field.set(this, value);
                     }
                 }
@@ -251,7 +251,7 @@ public class PortletHelper {
                 for (Field field : this.getClass().getDeclaredFields()) {
                     if (!field.getName().equals("valid")) {
                         field.setAccessible(true);
-                        Object value = PortletController.currentPortletPrefs.get().getValue(field.getName(), null);
+                        Object value = AbstractPortletController.currentPortletPrefs.get().getValue(field.getName(), null);
                         field.set(this, value);
                     }
                 }
@@ -266,7 +266,7 @@ public class PortletHelper {
                 for (Field field : this.getClass().getDeclaredFields()) {
                     if (!field.getName().equals("valid")) {
                         field.setAccessible(true);
-                        Object value = PortletController.currentPortletSession.get().getAttribute(field.getName());
+                        Object value = AbstractPortletController.currentPortletSession.get().getAttribute(field.getName());
                         field.set(this, value);
                     }
                 }
@@ -283,11 +283,11 @@ public class PortletHelper {
                         field.setAccessible(true);
                         Object value = field.get(this);
                         if (value != null) {
-                            PortletController.currentPortletPrefs.get().setValue(field.getName(), value.toString());
+                            AbstractPortletController.currentPortletPrefs.get().setValue(field.getName(), value.toString());
                         }
                     }
                 }
-                PortletController.currentPortletPrefs.get().store();
+                AbstractPortletController.currentPortletPrefs.get().store();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -300,7 +300,7 @@ public class PortletHelper {
                         field.setAccessible(true);
                         Object value = field.get(this);
                         if (value != null) {
-                            PortletController.currentPortletSession.get().setAttribute(field.getName(), value);
+                            AbstractPortletController.currentPortletSession.get().setAttribute(field.getName(), value);
                         }
                     }
                 }
@@ -385,7 +385,7 @@ public class PortletHelper {
     public static class RequestParams {
 
         private PortletRequest getRequest() {
-            return PortletController.currentRequest.get();
+            return AbstractPortletController.currentRequest.get();
         }
 
         public Option<String> parameter(String name) {
@@ -418,7 +418,7 @@ public class PortletHelper {
     public static class Session {
 
         private PortletSession getSession() {
-            return PortletController.currentPortletSession.get();
+            return AbstractPortletController.currentPortletSession.get();
         }
 
         public Option<Object> forKey(String key) {
@@ -457,7 +457,7 @@ public class PortletHelper {
         private final List<Exception> exceptions = new ArrayList<Exception>();
 
         private PortletPreferences getPrefs() {
-            return PortletController.currentPortletPrefs.get();
+            return AbstractPortletController.currentPortletPrefs.get();
         }
 
         public Option<String> forKey(String key) {

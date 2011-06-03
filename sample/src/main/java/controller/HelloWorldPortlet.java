@@ -1,7 +1,7 @@
 package controller;
 
 import com.sample.portlet.fwk.F.Option;
-import com.sample.portlet.fwk.PortletController.Render;
+import com.sample.portlet.fwk.AbstractPortletController.Render;
 import com.sample.portlet.fwk.PortletHelper;
 import com.sample.portlet.fwk.PortletHelper.Form;
 import com.sample.portlet.fwk.PortletHelper.Model;
