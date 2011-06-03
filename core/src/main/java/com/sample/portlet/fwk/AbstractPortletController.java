@@ -6,6 +6,7 @@ import com.sample.portlet.fwk.PortletHelper.ParameterizedModel;
 import com.sample.portlet.fwk.PortletHelper.Preferences;
 import com.sample.portlet.fwk.PortletHelper.RequestParams;
 import com.sample.portlet.fwk.PortletHelper.Session;
+import com.sample.portlet.fwk.Template.FileUtils.FileGrabber;
 import com.sample.portlet.fwk.annotation.ModelAttribute;
 import com.sample.portlet.fwk.annotation.OnAction;
 import com.sample.portlet.fwk.annotation.OnEvent;
@@ -13,10 +14,12 @@ import com.sample.portlet.fwk.annotation.OnRender;
 import com.sample.portlet.fwk.annotation.OnRender.Phase;
 import com.sample.portlet.fwk.annotation.OnSave;
 import com.sample.portlet.fwk.annotation.PreferenceAttribute;
+import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 import javax.portlet.ActionRequest;
 import javax.portlet.ActionResponse;
@@ -43,6 +46,7 @@ public abstract class AbstractPortletController extends GenericPortlet {
     public static final String CONTROLLER_KEY = "controller";
     public static final String ACTION = "javax.portlet.action";
     public static final String CUSTOM_VIEW = "fwk___view";
+    public static final String CUSTOM_TEMPLATE = "fwk___template";
 
     public static ThreadLocal<PortletRequest> currentRequest = new ThreadLocal<PortletRequest>();
     public static ThreadLocal<PortletResponse> currentResponse = new ThreadLocal<PortletResponse>();
@@ -69,6 +73,10 @@ public abstract class AbstractPortletController extends GenericPortlet {
     protected String controllerName;
     protected String elName;
 
+    protected Template template;
+
+    protected final Map<String, File> files = new HashMap<String, File>();
+
     @Override
     public final void init(PortletConfig config) throws PortletException {
         super.init(config);
@@ -83,22 +91,48 @@ public abstract class AbstractPortletController extends GenericPortlet {
         }
         controllerName = config.getPortletName().toLowerCase();
 		elName = config.getPortletName().substring(0, 1).toLowerCase() + config.getPortletName().substring(1);
+        if (getFile("view.jsp").exists()) {
         normalView = config.getPortletContext()
                 .getRequestDispatcher(VIEW_PREFIX + controllerName + VIEW);
+        }
         if (normalView == null) {
+            if (getFile("view-normal.jsp").exists()) {
             normalView = config.getPortletContext()
                     .getRequestDispatcher(VIEW_PREFIX + controllerName + NORMAL_VIEW);
+            }
+            if (getFile("view-maximized.jsp").exists()) {
             maximizedView = config.getPortletContext()
                     .getRequestDispatcher(VIEW_PREFIX + controllerName + MAXIMIZED_VIEW);
+            }
         } else {
-            maximizedView = config.getPortletContext()
-                    .getRequestDispatcher(VIEW_PREFIX + controllerName + VIEW);
+            maximizedView = normalView;
         }
-        helpView = config.getPortletContext()
+        if (getFile("help.jsp").exists()) {
+            helpView = config.getPortletContext()
                 .getRequestDispatcher(VIEW_PREFIX + controllerName + HELP_VIEW);
-        editView = config.getPortletContext()
+        }
+        if (getFile("edit.jsp").exists()) {
+            editView = config.getPortletContext()
                 .getRequestDispatcher(VIEW_PREFIX + controllerName + EDIT_VIEW);
+        }
+
+        template = new Template(this, new FileGrabber() {
+
+            @Override
+            public File getFile(String file) {
+                return new File(getPortletContext().getRealPath("/view/" + controllerName + "/" + file));
+            }
+
+        });
         start(config);
+    }
+
+    private File getFile(String path) {
+        if (!files.containsKey(path)) {
+            files.put(path, new File(getPortletContext()
+                    .getRealPath("/view/" + controllerName + "/" + path)));
+        }
+        return files.get(path);
     }
 
     public abstract void start(PortletConfig config);
@@ -126,16 +160,31 @@ public abstract class AbstractPortletController extends GenericPortlet {
     @Override
     public final void doView(RenderRequest request, RenderResponse response)
             throws PortletException, IOException {
-        if (request.getPortletSession().getAttribute(CUSTOM_VIEW) != null) {
+        if (request.getPortletSession().getAttribute(CUSTOM_TEMPLATE) != null) {
+            renderTemplate(request, response);
+        } else if (request.getPortletSession().getAttribute(CUSTOM_VIEW) != null) {
             renderCustom(request, response);
         } else {
             if (WindowState.MINIMIZED.equals(request.getWindowState())) {
                 return;
             }
             if (WindowState.NORMAL.equals(request.getWindowState())) {
-                normalView.include(request, response);
+                if (normalView == null && getFile("view.html").exists()) {
+                    Template.render("view.html");
+                    renderTemplate(request, response);
+                } else {
+                    normalView.include(request, response);
+                }
             } else {
-                maximizedView.include(request, response);
+                if (maximizedView == null && getFile("view-maximized.html").exists()) {
+                    Template.render("view-maximized.html");
+                    renderTemplate(request, response);
+                } else if (maximizedView == null && getFile("view.html").exists()) {
+                    Template.render("view.html");
+                    renderTemplate(request, response);
+                } else {
+                    maximizedView.include(request, response);
+                }
             }
         }
     }
@@ -143,20 +192,34 @@ public abstract class AbstractPortletController extends GenericPortlet {
     @Override
     public final void doHelp(RenderRequest request, RenderResponse response)
             throws PortletException, IOException {
-        if (request.getPortletSession().getAttribute(CUSTOM_VIEW) != null) {
+        if (request.getPortletSession().getAttribute(CUSTOM_TEMPLATE) != null) {
+            renderTemplate(request, response);
+        } else if (request.getPortletSession().getAttribute(CUSTOM_VIEW) != null) {
             renderCustom(request, response);
         } else {
-            helpView.include(request, response);
+            if (helpView == null && getFile("help.html").exists()) {
+                Template.render("help.html");
+                renderTemplate(request, response);
+            } else {
+                helpView.include(request, response);
+            }
         }
     }
 
     @Override
     public final void doEdit(RenderRequest request, RenderResponse response)
             throws PortletException, IOException {
-        if (request.getPortletSession().getAttribute(CUSTOM_VIEW) != null) {
+        if (request.getPortletSession().getAttribute(CUSTOM_TEMPLATE) != null) {
+            renderTemplate(request, response);
+        } else if (request.getPortletSession().getAttribute(CUSTOM_VIEW) != null) {
             renderCustom(request, response);
         } else {
-            editView.include(request, response);
+            if (editView == null && getFile("edit.html").exists()) {
+                Template.render("edit.html");
+                renderTemplate(request, response);
+            } else {
+                editView.include(request, response);
+            }
         }
     }
 
@@ -166,6 +229,18 @@ public abstract class AbstractPortletController extends GenericPortlet {
         PortletRequestDispatcher custom =
                 getPortletConfig().getPortletContext().getRequestDispatcher(file);
         custom.include(request, response);
+    }
+
+    private void renderTemplate(RenderRequest request, RenderResponse response)
+            throws PortletException, IOException {
+        String file = (String) request.getPortletSession().getAttribute(CUSTOM_TEMPLATE);
+        request.getPortletSession().removeAttribute(CUSTOM_TEMPLATE);
+        response.setContentType("text/html");
+        try {
+            template.render(file, currentModel.get(), response.getPortletOutputStream());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     @Override
@@ -214,6 +289,7 @@ public abstract class AbstractPortletController extends GenericPortlet {
             }
             currentModel.set((Model) model);
             currentModel.get().put(elName, currentController.get());
+            currentModel.get().put(Model.ERROR, "");
             currentModel.get().putAll(getManagedBeans(currentModel.get()));
             setControllersFields();
             startRequest(request, response);

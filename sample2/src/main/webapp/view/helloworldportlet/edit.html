@@ -1,0 +1,9 @@
+<h1>Edit preferences</h1>
+
+%{if (!error.empty) { }%
+<span class="portlet-msg-error">${error}</span>
+%{ } }%
+
+<form action="@action{'savePreferences'}" method="post">
+    ${form}
+</form>

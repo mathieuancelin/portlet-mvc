@@ -12,5 +12,6 @@
 		<module>core</module>
 		<module>empty</module>
 		<module>sample</module>
+		<module>sample2</module>
 	</modules>
 </project>
